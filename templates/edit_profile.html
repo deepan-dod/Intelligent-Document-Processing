@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell narrow-shell">
+    <a href="/profile" class="back-link">← Back to Profile</a>
+
+    <section class="panel edit-profile-card">
+        <div class="panel-header">
+            <div><p class="eyebrow">ACCOUNT SETTINGS</p><h2>Edit Profile</h2><p>Update your personal information.</p></div>
+        </div>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/profile/edit" class="profile-form">
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" name="name" value="{{ current_user.name }}" required>
+            </div>
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" name="email" value="{{ current_user.email }}" required>
+            </div>
+            <div class="input-group">
+                <label>Phone Number</label>
+                <input type="text" name="phone" value="{{ current_user.phone or '' }}">
+            </div>
+            <div class="form-actions">
+                <a href="/profile" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

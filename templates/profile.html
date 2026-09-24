@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}My Profile | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <div class="topbar">
+        <div>
+            <p class="eyebrow">ACCOUNT</p>
+            <h1>My Profile</h1>
+            <p class="page-subtitle">Manage your personal information and expense history.</p>
+        </div>
+        <a href="/profile/edit" class="btn btn-secondary">Edit Profile</a>
+    </div>
+
+    <div class="profile-grid">
+        <section class="panel profile-card">
+            <div class="profile-cover"></div>
+            <div class="profile-content">
+                <div class="large-avatar">{{ current_user.name[:1]|upper }}</div>
+                <h2>{{ current_user.name }}</h2>
+                <p>{{ current_user.email }}</p>
+
+                <div class="profile-details">
+                    <div><span>Full Name</span><strong>{{ current_user.name }}</strong></div>
+                    <div><span>Email</span><strong>{{ current_user.email }}</strong></div>
+                    <div><span>Phone</span><strong>{{ current_user.phone or 'Not provided' }}</strong></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header"><div><h2>Your Data</h2><p>Your processed documents and exports.</p></div></div>
+            <a class="profile-action" href="/invoices"><span>▣</span><div><strong>Invoice History</strong><small>View all uploaded invoices</small></div><b>→</b></a>
+            <a class="profile-action" href="/reports"><span>◒</span><div><strong>Expense Reports</strong><small>View spending analytics</small></div><b>→</b></a>
+            <a class="profile-action" href="/export/excel"><span>↓</span><div><strong>Excel Export</strong><small>Download your expense history</small></div><b>→</b></a>
+        </section>
+    </div>
+</div>
+{% endblock %}

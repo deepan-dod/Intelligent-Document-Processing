@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Upload Invoice | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell narrow-shell">
+    <div class="topbar">
+        <div>
+            <p class="eyebrow">DOCUMENT PROCESSING</p>
+            <h1>Upload Invoice</h1>
+            <p class="page-subtitle">Upload a clear photo or scan of your bill.</p>
+        </div>
+    </div>
+
+    <div class="upload-layout">
+        <section class="panel upload-panel">
+            <form method="POST" action="/upload" enctype="multipart/form-data" id="uploadForm">
+                <label class="drop-zone" id="dropZone">
+                    <input type="file" name="invoice" id="invoiceFile" accept="image/*,.pdf" hidden required>
+                    <div class="upload-icon">↑</div>
+                    <h2>Drop your invoice here</h2>
+                    <p>or click to browse from your device</p>
+                    <span class="file-types">JPG · JPEG · PNG · PDF</span>
+                    <div id="fileName" class="selected-file"></div>
+                </label>
+
+                <div class="upload-tips">
+                    <div><span>✓</span> Make sure the invoice is clearly visible</div>
+                    <div><span>✓</span> Avoid blurry or heavily cropped images</div>
+                    <div><span>✓</span> Keep the total amount readable</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary full-btn">Process Invoice →</button>
+            </form>
+        </section>
+
+        <section class="panel process-panel">
+            <p class="eyebrow">PROCESS</p>
+            <h2>What happens next?</h2>
+            <div class="process-step"><b>01</b><div><strong>Image Enhancement</strong><span>OpenCV improves the uploaded document.</span></div></div>
+            <div class="process-step"><b>02</b><div><strong>OCR Extraction</strong><span>PaddleOCR extracts text from the invoice.</span></div></div>
+            <div class="process-step"><b>03</b><div><strong>Field Parsing</strong><span>Invoice number, date, vendor and amount are identified.</span></div></div>
+            <div class="process-step"><b>04</b><div><strong>Smart Categorization</strong><span>Your expense is assigned to a suitable category.</span></div></div>
+        </section>
+    </div>
+</div>
+{% endblock %}

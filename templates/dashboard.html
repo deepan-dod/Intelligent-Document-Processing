@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <div class="topbar">
+        <div>
+            <p class="eyebrow">OVERVIEW</p>
+            <h1>Welcome, {{ current_user.name }}</h1>
+            <p class="page-subtitle">Here is your personal expense overview.</p>
+        </div>
+        <a href="/upload" class="btn btn-primary">＋ Upload Invoice</a>
+    </div>
+
+    <section class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon purple">₹</div>
+            <div><span>Total Spending</span><strong>₹0.00</strong><small>This month</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">▣</div>
+            <div><span>Total Invoices</span><strong>0</strong><small>Uploaded documents</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">✓</div>
+            <div><span>Validated</span><strong>0</strong><small>Verified invoices</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">◒</div>
+            <div><span>Categories</span><strong>0</strong><small>Expense categories</small></div>
+        </div>
+    </section>
+
+    <section class="dashboard-grid">
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Spending Overview</h2>
+                    <p>Your expenses will appear here after invoice processing.</p>
+                </div>
+                <a href="/reports" class="text-link">View Reports →</a>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="dashboardChart"></canvas>
+                <div class="empty-chart">No expense data yet</div>
+            </div>
+        </div>
+
+        <div class="panel quick-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Quick Actions</h2>
+                    <p>Manage your expenses quickly.</p>
+                </div>
+            </div>
+
+            <a href="/upload" class="quick-action">
+                <div class="quick-icon">↑</div>
+                <div><strong>Upload Invoice</strong><span>Scan a new bill</span></div>
+                <b>→</b>
+            </a>
+            <a href="/invoices" class="quick-action">
+                <div class="quick-icon">▣</div>
+                <div><strong>View Invoices</strong><span>Browse processed bills</span></div>
+                <b>→</b>
+            </a>
+            <a href="/chatbot" class="quick-action">
+                <div class="quick-icon">✦</div>
+                <div><strong>Ask AI Assistant</strong><span>Understand your spending</span></div>
+                <b>→</b>
+            </a>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Recent Invoices</h2>
+                <p>Your latest uploaded documents.</p>
+            </div>
+            <a href="/invoices" class="text-link">View All →</a>
+        </div>
+
+        <div class="empty-state">
+            <div class="empty-icon">▣</div>
+            <h3>No invoices yet</h3>
+            <p>Upload your first bill and IDP will extract the expense details automatically.</p>
+            <a href="/upload" class="btn btn-primary">Upload First Invoice</a>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

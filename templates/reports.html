@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Reports | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <div class="topbar">
+        <div>
+            <p class="eyebrow">ANALYTICS</p>
+            <h1>Expense Reports</h1>
+            <p class="page-subtitle">Understand your spending patterns with simple visual reports.</p>
+        </div>
+        <button class="btn btn-secondary" onclick="window.print()">Export / Print</button>
+    </div>
+
+    <section class="report-summary">
+        <div class="report-big-card">
+            <span>Total This Month</span>
+            <strong>₹0.00</strong>
+            <small>No expense data available yet</small>
+        </div>
+        <div class="report-big-card">
+            <span>Average Weekly Spend</span>
+            <strong>₹0.00</strong>
+            <small>Calculated automatically</small>
+        </div>
+        <div class="report-big-card">
+            <span>Top Category</span>
+            <strong>—</strong>
+            <small>Will appear after processing</small>
+        </div>
+    </section>
+
+    <div class="dashboard-grid">
+        <section class="panel">
+            <div class="panel-header"><div><h2>Weekly Spending</h2><p>Track spending across the week.</p></div></div>
+            <div class="chart-wrap"><canvas id="weeklyChart"></canvas><div class="empty-chart">No data yet</div></div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header"><div><h2>Category Breakdown</h2><p>See which categories receive the most spending.</p></div></div>
+            <div class="chart-wrap doughnut-wrap"><canvas id="categoryChart"></canvas><div class="empty-chart">No data yet</div></div>
+        </section>
+    </div>
+
+    <section class="panel">
+        <div class="panel-header"><div><h2>Spending Insights</h2><p>AI-generated insights will appear here.</p></div></div>
+        <div class="insight-grid">
+            <div class="insight-card"><span>✦</span><div><strong>Spending Pattern</strong><p>Upload invoices to generate personalized spending insights.</p></div></div>
+            <div class="insight-card"><span>↘</span><div><strong>Saving Opportunity</strong><p>The system will identify categories where spending can potentially be reduced.</p></div></div>
+            <div class="insight-card"><span>◒</span><div><strong>Category Trend</strong><p>Weekly and monthly category trends will be calculated automatically.</p></div></div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

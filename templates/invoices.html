@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Invoices | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <div class="topbar">
+        <div>
+            <p class="eyebrow">DOCUMENTS</p>
+            <h1>My Invoices</h1>
+            <p class="page-subtitle">All your uploaded and processed bills.</p>
+        </div>
+        <a href="/upload" class="btn btn-primary">＋ Upload Invoice</a>
+    </div>
+
+    <section class="panel">
+        <div class="table-toolbar">
+            <div class="search-box">
+                <span>⌕</span>
+                <input type="text" id="invoiceSearch" placeholder="Search invoices...">
+            </div>
+            <select id="statusFilter" class="select-input">
+                <option value="">All Status</option>
+                <option value="Processed">Processed</option>
+                <option value="Pending">Pending</option>
+                <option value="Invalid">Invalid</option>
+            </select>
+        </div>
+
+        <div class="table-wrap">
+            <table class="data-table" id="invoiceTable">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Vendor</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if invoices %}
+                    {% for invoice in invoices %}
+                    <tr>
+                        <td><strong>#{{ invoice.invoice_number or invoice.id }}</strong></td>
+                        <td>{{ invoice.vendor or '—' }}</td>
+                        <td>{{ invoice.invoice_date or '—' }}</td>
+                        <td>{{ invoice.category or 'Uncategorized' }}</td>
+                        <td>₹{{ "%.2f"|format(invoice.total or 0) }}</td>
+                        <td><span class="status status-success">{{ invoice.status or 'Processed' }}</span></td>
+                        <td><a href="/invoice/{{ invoice.id }}" class="table-link">View</a></td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr class="empty-row">
+                        <td colspan="7">
+                            <div class="table-empty">
+                                <div class="empty-icon">▣</div>
+                                <h3>No invoices found</h3>
+                                <p>Upload a bill to start building your invoice history.</p>
+                                <a href="/upload" class="btn btn-primary">Upload Invoice</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

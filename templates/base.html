@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IDP | Intelligent Expense Management{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="{% if current_user.is_authenticated %}app-body{% else %}public-body{% endif %}">
+
+{% if current_user.is_authenticated %}
+<aside class="sidebar" id="sidebar">
+    <div class="brand">
+        <div class="brand-mark">IDP</div>
+        <div>
+            <strong>IntelliSpend</strong>
+            <span>Smart Expense Manager</span>
+        </div>
+    </div>
+
+    <nav class="side-nav">
+        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+            <span class="nav-icon">⌂</span><span>Dashboard</span>
+        </a>
+        <a href="/invoices" class="nav-link {% if request.path.startswith('/invoices') %}active{% endif %}">
+            <span class="nav-icon">▣</span><span>Invoices</span>
+        </a>
+        <a href="/expenses" class="nav-link {% if request.path.startswith('/expenses') %}active{% endif %}">
+            <span class="nav-icon">₹</span><span>Expenses</span>
+        </a>
+        <a href="/reports" class="nav-link {% if request.path.startswith('/reports') %}active{% endif %}">
+            <span class="nav-icon">◒</span><span>Reports</span>
+        </a>
+        <a href="/chatbot" class="nav-link {% if request.path.startswith('/chatbot') %}active{% endif %}">
+            <span class="nav-icon">✦</span><span>AI Assistant</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+        <a href="/profile" class="profile-mini">
+            <div class="avatar">{{ current_user.name[:1]|upper }}</div>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>My Profile</span>
+            </div>
+        </a>
+        <a href="/logout" class="logout-link">
+            <span>↪</span> Logout
+        </a>
+    </div>
+</aside>
+
+<button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<main class="main-content">
+{% else %}
+<main class="public-content">
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-stack">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

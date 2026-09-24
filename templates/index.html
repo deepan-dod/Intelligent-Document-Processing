@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}IDP | Intelligent Expense Management{% endblock %}
+
+{% block content %}
+<section class="landing-page">
+    <div class="landing-glow glow-one"></div>
+    <div class="landing-glow glow-two"></div>
+
+    <div class="hero">
+        <div class="hero-badge">✦ INTELLIGENT DOCUMENT PROCESSING</div>
+        <div class="hero-logo">IDP</div>
+        <h1>Turn Bills Into <span>Smart Insights.</span></h1>
+        <p>
+            Upload your invoices, automatically extract expense details,
+            organize your spending and understand where your money goes.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="/login" class="btn btn-primary">Get Started <span>→</span></a>
+            <a href="/register" class="btn btn-secondary">Create Account</a>
+        </div>
+
+        <div class="hero-features">
+            <div><span>✓</span> OCR Extraction</div>
+            <div><span>✓</span> Smart Categorization</div>
+            <div><span>✓</span> Expense Reports</div>
+        </div>
+    </div>
+</section>
+{% endblock %}

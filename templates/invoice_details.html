@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Invoice Details | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell">
+    <a href="/invoices" class="back-link">← Back to Invoices</a>
+
+    <div class="topbar detail-topbar">
+        <div>
+            <p class="eyebrow">INVOICE DETAILS</p>
+            <h1>Invoice #{{ invoice.invoice_number or invoice.id }}</h1>
+            <p class="page-subtitle">Extracted information and validation results.</p>
+        </div>
+        <span class="status status-success">{{ invoice.status or 'Processed' }}</span>
+    </div>
+
+    <div class="detail-grid">
+        <section class="panel">
+            <div class="panel-header"><h2>Extracted Information</h2></div>
+            <div class="detail-list">
+                <div><span>Invoice Number</span><strong>{{ invoice.invoice_number or '—' }}</strong></div>
+                <div><span>Vendor</span><strong>{{ invoice.vendor or '—' }}</strong></div>
+                <div><span>Invoice Date</span><strong>{{ invoice.invoice_date or '—' }}</strong></div>
+                <div><span>Subtotal</span><strong>₹{{ "%.2f"|format(invoice.subtotal or 0) }}</strong></div>
+                <div><span>Total</span><strong class="highlight-value">₹{{ "%.2f"|format(invoice.total or 0) }}</strong></div>
+                <div><span>Category</span><strong>{{ invoice.category or 'Uncategorized' }}</strong></div>
+            </div>
+        </section>
+
+        <section class="panel validation-card">
+            <div class="panel-header"><h2>Validation</h2></div>
+            <div class="validation-result">
+                <div class="validation-icon">✓</div>
+                <h3>Document Processed</h3>
+                <p>Mathematical and document checks will appear here after backend validation is connected.</p>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Login | IDP{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="auth-glow"></div>
+    <div class="auth-card">
+        <div class="auth-logo">IDP</div>
+        <h1>Welcome Back</h1>
+        <p class="auth-subtitle">Login to your intelligent expense management system.</p>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="auth-form">
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="Enter your email"
+                       value="{{ email or '' }}" required>
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password" required>
+            </div>
+
+            <button type="submit" class="auth-button">Login</button>
+        </form>
+
+        <p class="auth-footer">
+            Don't have an account?
+            <a href="/register">Create Account</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

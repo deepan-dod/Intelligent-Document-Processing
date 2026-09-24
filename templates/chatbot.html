@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant | IDP{% endblock %}
+
+{% block content %}
+<div class="page-shell chatbot-shell">
+    <div class="topbar">
+        <div>
+            <p class="eyebrow">AI ASSISTANT</p>
+            <h1>Expense Assistant</h1>
+            <p class="page-subtitle">Ask questions about your spending and invoices.</p>
+        </div>
+        <div class="ai-status"><span></span> Ready</div>
+    </div>
+
+    <section class="chat-card">
+        <div class="chat-header">
+            <div class="ai-avatar">✦</div>
+            <div><strong>IDP Assistant</strong><span>Expense insights & guidance</span></div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-avatar">✦</div>
+                <div class="bubble">
+                    Hi {{ current_user.name }}! 👋<br>
+                    Upload some invoices and I can help you understand your spending.
+                </div>
+            </div>
+        </div>
+
+        <div class="suggestion-row">
+            <button class="suggestion">Where am I spending the most?</button>
+            <button class="suggestion">Show my recent expenses</button>
+            <button class="suggestion">How can I reduce expenses?</button>
+        </div>
+
+        <form class="chat-input-area" id="chatForm">
+            <input type="text" id="chatInput" placeholder="Ask something about your expenses..." autocomplete="off">
+            <button type="submit">→</button>
+        </form>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% endblock %}
