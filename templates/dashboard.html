@@ -15,19 +15,19 @@
     <section class="stat-grid">
         <div class="stat-card">
             <div class="stat-icon purple">₹</div>
-            <div><span>Total Spending</span><strong>₹0.00</strong><small>This month</small></div>
+            <div><span>Total Spending</span><strong>₹{{ "%.2f"|format(total_spending) }}</strong><small>This month</small></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon blue">▣</div>
-            <div><span>Total Invoices</span><strong>0</strong><small>Uploaded documents</small></div>
+            <div><span>Total Invoices</span><strong>{{ invoice_count }}</strong><small>Uploaded documents</small></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon green">✓</div>
-            <div><span>Validated</span><strong>0</strong><small>Verified invoices</small></div>
+            <div><span>Validated</span><strong>{{ validated_count }}</strong><small>Verified invoices</small></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon orange">◒</div>
-            <div><span>Categories</span><strong>0</strong><small>Expense categories</small></div>
+            <div><span>Categories</span><strong>{{ category_count }}</strong><small>Expense categories</small></div>
         </div>
     </section>
 

@@ -309,14 +309,18 @@ def dashboard():
     ).all()
 
     total_spending = sum(
-        expense.amount or 0
+        float(expense.amount or 0)
         for expense in expenses
     )
 
+    validated_count = sum(
+    1 for invoice in invoices
+    if invoice.status == "Processed"
+    )
+
     categories = set(
-        expense.category
+        expense.category or "Other"
         for expense in expenses
-        if expense.category
     )
 
     return render_template(
@@ -325,6 +329,7 @@ def dashboard():
         total_spending=total_spending,
         invoice_count=len(invoices),
         expense_count=len(expenses),
+        validated_count=validated_count,
         category_count=len(categories)
     )
 
