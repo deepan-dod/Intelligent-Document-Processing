@@ -1,12 +1,38 @@
-Flask
-Flask-SQLAlchemy
-Flask-Bcrypt
-Flask-Login
-opencv-python
-numpy
-pandas
-openpyxl
-scikit-learn
-joblib
-paddlepaddle
-paddleocr
+# Web Application & Auth
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.0
+Flask-Login>=0.6.3
+Flask-Bcrypt>=1.0.1
+python-dotenv>=1.0.0
+
+# Database (PostgreSQL dialect for SQLAlchemy)
+psycopg2-binary>=2.9.0
+
+# Numerical, Tabular & Image Processing
+numpy>=1.24.0
+pandas>=2.0.0
+opencv-python-headless>=4.8.0
+PyMuPDF>=1.23.0
+
+# Machine Learning & MLOps
+scikit-learn>=1.3.0
+joblib>=1.3.0
+mlflow>=2.10.0
+
+# Reporting & Exporting
+openpyxl>=3.1.0
+reportlab>=4.0.0
+
+# Copilot & LLM Integration
+anthropic>=0.18.0
+
+# Production WSGI Server (Unix/Linux/Container)
+gunicorn>=21.2.0; sys_platform != 'win32'
+
+# Testing & Code Quality
+pytest>=7.4.0
+flake8>=6.1.0
+
+# Primary OCR engine (heavy, optional at import time; app falls back to the PDF text layer):
+# paddlepaddle
+# paddleocr

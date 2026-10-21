@@ -1,10 +1,82 @@
-.venv/
-venv/
+# Byte-compiled / optimized / cache files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables and local secrets
 .env
-instance/
+.env.*
+!.env.example
+
+# Database files & SQLite journals
 *.db
-uploads/
-*.xlsx
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# User uploads & processed artifacts
+uploads/*
+!uploads/.gitkeep
+
+# Data directories (preserve folder structure via .gitkeep, ignore datasets/files)
+data/*/*
+!data/*/.gitkeep
+
+# MLflow tracking, artifacts & experiments
+mlruns/
+mlartifacts/
+
+# Model checkpoints & serialized models
+ml/models/*
+!ml/models/.gitkeep
+*.joblib
+*.pkl
+*.pickle
+
+# Testing, linting & code coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# Packaging & build distribution
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs & temporary files
 *.log
+logs/
+*.tmp
+temp/
+tmp/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}{{ d.code }} — {{ d.filename }}{% endblock %}
+
+{% block body %}
+<!-- Document Breadcrumb & Header -->
+<div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted)">
+  <a href="/documents">&larr; Back to Documents</a> / <span style="font-family:var(--font-mono)">{{ d.code }}</span>
+</div>
+
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1>
+      <span>📑</span>
+      <span>{{ d.code }} — {{ d.filename }}</span>
+    </h1>
+    <p class="page-subtitle">
+      Classified as <strong style="text-transform:capitalize">{{ (d.doc_type or 'other').replace('_', ' ') }}</strong> ({{ '%.0f'|format((d.type_confidence or 0)*100) }}% confidence)
+      · Status: <span class="status-pill {{ (d.status or 'Uploaded').replace(' ', '-') }}">{{ d.status }}</span>
+      · OCR Engine: <b>{{ d.ocr_engine or 'Text layer' }}</b>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a href="/documents/{{ d.id }}/file?download=1" class="btn btn-secondary btn-sm" title="Download original file">
+      ⬇️ Download Original
+    </a>
+    {% if can('upload') %}
+    <form action="/documents/{{ d.id }}/reprocess" method="post" style="display:inline">
+      <button type="submit" class="btn btn-outline btn-sm" title="Re-run OCR, field extraction, and risk engine">
+        🔄 Reprocess
+      </button>
+    </form>
+    {% endif %}
+    {% if inv %}
+    <a href="/investigations/{{ inv.id }}" class="btn btn-primary btn-sm">
+      ⚖️ Case {{ inv.code }} · <span class="tag {{ inv.priority }}" style="padding:1px 6px">{{ inv.priority }} {{ inv.score }}/100</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Diagnostics / Quality Bar -->
+<div class="card" style="padding:16px 20px; background:#f8fafc">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px">
+    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap">
+      <div>
+        <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block">SHA-256 Checksum</span>
+        <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-secondary)">
+          {{ d.sha256[:16] }}...{{ d.sha256[-8:] }}
+          <button class="btn btn-sm btn-outline" style="padding:1px 6px; font-size:0.7rem; margin-left:4px" data-copy="{{ d.sha256 }}">Copy</button>
+        </span>
+      </div>
+      <div>
+        <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block">File Specs</span>
+        <span style="font-size:0.84rem; color:var(--text-secondary)">{{ (d.size / 1024)|round(1) }} KB · {{ d.page_count }} page{{ 's' if d.page_count > 1 else '' }} · {{ d.mime }}</span>
+      </div>
+      <div>
+        <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600; display:block">Uploader</span>
+        <span style="font-size:0.84rem; color:var(--text-secondary)">{{ d.uploader or 'system' }} ({{ d.uploaded_at.strftime('%Y-%m-%d %H:%M') if d.uploaded_at else '' }})</span>
+      </div>
+    </div>
+
+    <!-- Quality Breakdown -->
+    {% if d.quality %}
+    <div style="display:flex; align-items:center; gap:12px">
+      <span style="font-size:0.78rem; font-weight:600; color:var(--text-secondary)">Quality Score:</span>
+      <div style="display:flex; gap:8px">
+        <span class="badge" title="Sharpness" style="background:#e0f2fe; color:#0369a1">Sharpness: {{ '%.0f'|format(d.quality.get('sharpness',0)*100) }}%</span>
+        <span class="badge" title="Contrast" style="background:#e0f2fe; color:#0369a1">Contrast: {{ '%.0f'|format(d.quality.get('contrast',0)*100) }}%</span>
+        <span class="badge" title="Overall" style="background:{% if d.quality.get('overall',0) >= 0.7 %}#ecfdf5{% else %}#fff7ed{% endif %}; color:{% if d.quality.get('overall',0) >= 0.7 %}#065f46{% else %}#9a3412{% endif %}">
+          Overall: {{ '%.0f'|format(d.quality.get('overall',0)*100) }}%
+        </span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Tabs Navigation Card -->
+<div class="card" style="padding:0; overflow:hidden">
+  <div style="padding: 16px 20px 0; background: #fff; border-bottom: 1px solid var(--border-light)">
+    <div class="tabs-header" style="margin-bottom:0">
+      <button class="tab-btn active" data-tab="tab-fields">📋 Extracted Fields ({{ fields|length }})</button>
+      <button class="tab-btn" data-tab="tab-evidence">🔍 Evidence Findings ({{ evidence|length }})</button>
+      <button class="tab-btn" data-tab="tab-preview">🖼️ Document Preview &amp; OCR ({{ lines|length }})</button>
+      <button class="tab-btn" data-tab="tab-graph">🕸️ Evidence Graph</button>
+      <button class="tab-btn" data-tab="tab-audit">🛡️ Audit Trail ({{ audit_history|length }})</button>
+    </div>
+  </div>
+
+  <div style="padding: 24px">
+    <!-- TAB 1: EXTRACTED FIELDS -->
+    <div id="tab-fields" class="tab-pane active">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+        <div>
+          <h3 style="font-size:1.05rem; font-weight:700">Structured Data Extraction</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted)">Fields are mapped with per-field OCR confidence and linked to exact source lines &amp; bounding boxes.</p>
+        </div>
+        {% if inv %}
+        <a href="/investigations/{{ inv.id }}" class="btn btn-sm btn-outline">✎ Correct Field in Case</a>
+        {% endif %}
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Field Name</th>
+              <th>Extracted Value</th>
+              <th>Confidence</th>
+              <th>Page</th>
+              <th>Bounding Box</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in fields %}
+            <tr class="{{ 'low' if f.confidence < low }}">
+              <td>
+                <b style="font-family:var(--font-mono); color:var(--text-primary)">{{ f.name }}</b>
+              </td>
+              <td>
+                <span style="font-size:0.92rem; font-weight:600">{{ f.value }}</span>
+                {% if f.corrected %}<span class="badge" style="background:#e0e7ff; color:#3730a3; margin-left:6px">✎ Corrected</span>{% endif %}
+              </td>
+              <td>
+                <div style="display:flex; align-items:center; gap:8px">
+                  <div style="width:60px; height:6px; background:#e2e8f0; border-radius:10px; overflow:hidden">
+                    <div style="width:{{ '%.0f'|format(f.confidence*100) }}%; height:100%; background:{% if f.confidence >= 0.8 %}var(--low){% elif f.confidence >= 0.6 %}var(--medium){% else %}var(--critical){% endif %}"></div>
+                  </div>
+                  <span style="font-size:0.8rem; font-weight:600; color:{% if f.confidence < low %}var(--high-text){% else %}var(--text-secondary){% endif %}">
+                    {{ '%.0f'|format(f.confidence*100) }}%
+                  </span>
+                </div>
+              </td>
+              <td>Page {{ f.page or 1 }}</td>
+              <td>
+                <small style="font-family:var(--font-mono); color:var(--text-muted)">{{ f.bbox or '—' }}</small>
+              </td>
+              <td>
+                {% if f.confidence < low %}
+                <span class="badge badge-high">Needs Verification</span>
+                {% else %}
+                <span class="badge badge-low">Verified</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="padding:20px; text-align:center; color:var(--text-muted)">No fields extracted for this document.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: EVIDENCE FINDINGS -->
+    <div id="tab-evidence" class="tab-pane">
+      <div style="margin-bottom:16px">
+        <h3 style="font-size:1.05rem; font-weight:700">Cross-Document Findings &amp; Evidence Signals</h3>
+        <p style="font-size:0.82rem; color:var(--text-muted)">Unified findings across contradictions, duplicate detection, statistical anomalies, and integrity signals.</p>
+      </div>
+
+      <div class="evidence-list">
+        {% for e in evidence %}
+        <div class="evidence-item {{ e.kind }}">
+          <div class="evidence-header">
+            <div style="display:flex; align-items:center; gap:10px">
+              <span class="tag {{ e.kind }}">{{ e.kind }}</span>
+              <span class="evidence-title">{{ e.title }}</span>
+            </div>
+            {% if e.related_doc_id %}
+            <a href="/documents/{{ e.related_doc_id }}" class="btn btn-sm btn-outline">
+              Inspect Related DOC-{{ e.related_doc_id }} &rarr;
+            </a>
+            {% endif %}
+          </div>
+          {% if e.detail %}
+          <div class="evidence-detail">
+            {% if e.kind == 'conflict' and e.detail is mapping %}
+            <strong>Field Conflict:</strong> {{ e.field_name }} &mdash; Found: <b>{{ e.detail.get('found') }}</b> vs Expected: <b>{{ e.detail.get('expected') }}</b> (Documents: {{ (e.detail.get('sources') or [])|join(' / ') }})
+            {% elif e.kind == 'duplicate' and e.detail is mapping %}
+            <strong>Duplicate Detection:</strong> Cosine/Jaccard Similarity <b>{{ '%.1f'|format((e.detail.get('similarity') or 0)*100) }}%</b> with DOC-{{ e.detail.get('related_doc_id') }}
+            {% elif e.kind == 'anomaly' and e.detail is mapping %}
+            <strong>Numeric Anomaly:</strong> Feature '{{ e.detail.get('feature') }}' value {{ e.detail.get('value') }} is outside historical range [{{ (e.detail.get('history_range') or [0,0])|join(' – ') }}]
+            {% else %}
+            <pre style="margin:0; white-space:pre-wrap">{{ e.detail }}</pre>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div style="padding:32px; text-align:center; color:var(--text-muted)">
+          <span>✅</span> No negative evidence signals found for this document.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- TAB 3: DOCUMENT PREVIEW & OCR -->
+    <div id="tab-preview" class="tab-pane">
+      <div class="grid grid-2">
+        <div>
+          <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:10px">Page Image / Document View</h4>
+          {% if pages %}
+          <div class="doc-preview-box">
+            <img src="/documents/{{ d.id }}/pages/1" class="doc-preview-img" alt="Rendered page 1" onerror="this.style.display='none'; document.getElementById('preview-fallback-{{ d.id }}').style.display='flex';">
+            <div id="preview-fallback-{{ d.id }}" style="display:none; height:240px; flex-direction:column; align-items:center; justify-content:center; background:#f1f5f9; border-radius:var(--radius-md);">
+              <span style="font-size:2rem; margin-bottom:8px">📄</span>
+              <p style="color:var(--text-muted)">Preview file on disk</p>
+              <a href="/documents/{{ d.id }}/file" target="_blank" class="btn btn-sm btn-primary" style="margin-top:10px">Open Original Document</a>
+            </div>
+          </div>
+          <p style="margin-top:6px; font-size:0.78rem; color:var(--text-muted); text-align:center">Processed page 1 of {{ pages|length }} with deskewing &amp; CLAHE contrast enhancement.</p>
+          {% else %}
+          <div style="height:320px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f1f5f9; border-radius:var(--radius-md); border:1px solid var(--border-light)">
+            <span style="font-size:2rem; margin-bottom:8px">📄</span>
+            <p style="color:var(--text-muted)">Original file preview</p>
+            <a href="/documents/{{ d.id }}/file" target="_blank" class="btn btn-sm btn-primary" style="margin-top:10px">Open Original in New Tab</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+            <h4 style="font-size:0.95rem; font-weight:700">OCR Traceable Lines ({{ lines|length }})</h4>
+            <input type="text" data-table-filter="ocr-lines-table" placeholder="Filter OCR text..." style="width:180px; padding:4px 8px; font-size:0.8rem">
+          </div>
+          <div style="max-height:480px; overflow-y:auto; border:1px solid var(--border-light); border-radius:var(--radius-md)">
+            <table id="ocr-lines-table" style="font-size:0.82rem">
+              <thead>
+                <tr>
+                  <th>Pg</th>
+                  <th>Extracted Text</th>
+                  <th>Conf.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for l in lines %}
+                <tr>
+                  <td>{{ l.page }}</td>
+                  <td>{{ l.text }}</td>
+                  <td><b>{{ '%.0f'|format(l.confidence*100) }}%</b></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" style="padding:16px; text-align:center; color:var(--text-muted)">No OCR lines stored.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: EVIDENCE GRAPH -->
+    <div id="tab-graph" class="tab-pane">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+        <div>
+          <h3 style="font-size:1.05rem; font-weight:700">2-Hop Knowledge &amp; Conflict Graph</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted)">Interactive visual graph showing referencing documents, shared entities, contradictions, and duplicates.</p>
+        </div>
+        <div style="display:flex; gap:10px; font-size:0.78rem">
+          <span style="display:flex; align-items:center; gap:4px"><span style="width:12px; height:12px; background:#6366f1; border-radius:2px"></span> Document</span>
+          <span style="display:flex; align-items:center; gap:4px"><span style="width:12px; height:12px; background:#f59e0b; border-radius:50%"></span> Entity</span>
+          <span style="display:flex; align-items:center; gap:4px"><span style="width:14px; height:2px; background:#ef4444"></span> Contradicts</span>
+        </div>
+      </div>
+      <div id="g" style="height: 480px; width: 100%;"></div>
+    </div>
+
+    <!-- TAB 5: AUDIT TRAIL -->
+    <div id="tab-audit" class="tab-pane">
+      <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:14px">Document Audit History</h3>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Field / Changes</th>
+              <th>Reason</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in audit_history %}
+            <tr>
+              <td><small style="color:var(--text-muted)">{{ a.ts.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+              <td><b>{{ a.user }}</b></td>
+              <td><span class="badge" style="background:#f1f5f9; color:#334155">{{ a.action }}</span></td>
+              <td>
+                {% if a.field_name %}
+                <b>{{ a.field_name }}</b>: <s>{{ a.previous_value }}</s> &rarr; <span style="color:#10b981">{{ a.new_value }}</span>
+                {% elif a.new_value %}
+                {{ a.new_value }}
+                {% else %}
+                —
+                {% endif %}
+              </td>
+              <td><small>{{ a.reason or '—' }}</small></td>
+              <td><span class="badge" style="font-size:0.7rem">{{ a.source }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="padding:16px; text-align:center; color:var(--text-muted)">No audit events recorded for this document yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Evidence Graph when Tab 4 is opened or right away
+  let graphRendered = false;
+  function triggerGraph() {
+    if (!graphRendered) {
+      renderEvidenceGraph('g', '/api/documents/{{ d.id }}/relationships');
+      graphRendered = true;
+    }
+  }
+
+  const graphTabBtn = document.querySelector('[data-tab="tab-graph"]');
+  if (graphTabBtn) {
+    graphTabBtn.addEventListener('click', () => setTimeout(triggerGraph, 100));
+  }
+});
+</script>
+{% endblock %}

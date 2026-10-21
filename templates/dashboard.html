@@ -1,97 +1,299 @@
 {% extends "base.html" %}
-{% block title %}Dashboard | IDP{% endblock %}
+{% block title %}Investigation Dashboard{% endblock %}
 
-{% block content %}
-<div class="page-shell">
-    <div class="topbar">
-        <div>
-            <p class="eyebrow">OVERVIEW</p>
-            <h1>Welcome, {{ current_user.name }}</h1>
-            <p class="page-subtitle">Here is your personal expense overview.</p>
-        </div>
-        <a href="/upload" class="btn btn-primary">＋ Upload Invoice</a>
+{% block body %}
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1><span>📊</span> Investigation Command Dashboard</h1>
+    <p class="page-subtitle">Real-time surveillance of cross-document consistency, anomalies, duplicates, and investigation queues.</p>
+  </div>
+  <div class="page-actions">
+    {% if can('upload') %}
+    <form action="/demo-data" method="post" style="display:inline">
+      <button type="submit" class="btn btn-secondary" title="Load sample scenario (Contract, PO, Delivery, Invoice, Certificate)">
+        <span>⚡</span> Load Demo Scenario
+      </button>
+    </form>
+    <a href="/upload" class="btn btn-primary">
+      <span>📤</span> Upload Documents
+    </a>
+    {% endif %}
+    <a href="/copilot" class="btn btn-outline">
+      <span>🤖</span> Ask Copilot
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div id="kpis" class="kpis">
+  <div class="kpi"><span class="kpi-icon">⏳</span><b>...</b><span>Loading KPIs...</span></div>
+</div>
+
+<!-- Charts Grid -->
+<div class="grid grid-2" style="margin-bottom: 24px;">
+  <div class="card">
+    <div class="card-header">
+      <h3><span>📁</span> Documents by Type</h3>
+      <span class="badge" id="doc-count-badge">Analyzing</span>
     </div>
+    <div style="height: 280px; position: relative;">
+      <canvas id="c1"></canvas>
+    </div>
+  </div>
 
-    <section class="stat-grid">
-        <div class="stat-card">
-            <div class="stat-icon purple">₹</div>
-            <div><span>Total Spending</span><strong>₹{{ "%.2f"|format(total_spending) }}</strong><small>This month</small></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon blue">▣</div>
-            <div><span>Total Invoices</span><strong>{{ invoice_count }}</strong><small>Uploaded documents</small></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon green">✓</div>
-            <div><span>Validated</span><strong>{{ validated_count }}</strong><small>Verified invoices</small></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon orange">◒</div>
-            <div><span>Categories</span><strong>{{ category_count }}</strong><small>Expense categories</small></div>
-        </div>
-    </section>
+  <div class="card">
+    <div class="card-header">
+      <h3><span>⚖️</span> Investigations by Priority</h3>
+      <span class="badge badge-high" id="prio-badge">Prioritized</span>
+    </div>
+    <div style="height: 280px; position: relative;">
+      <canvas id="c2"></canvas>
+    </div>
+  </div>
 
-    <section class="dashboard-grid">
-        <div class="panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Spending Overview</h2>
-                    <p>Your expenses will appear here after invoice processing.</p>
-                </div>
-                <a href="/reports" class="text-link">View Reports →</a>
-            </div>
-            <div class="chart-wrap">
-                <canvas id="dashboardChart"></canvas>
-                <div class="empty-chart">No expense data yet</div>
-            </div>
-        </div>
+  <div class="card">
+    <div class="card-header">
+      <h3><span>🔎</span> Findings by Evidence Kind</h3>
+      <span class="badge" style="background:#e0e7ff; color:#3730a3">Signals</span>
+    </div>
+    <div style="height: 280px; position: relative;">
+      <canvas id="c3"></canvas>
+    </div>
+  </div>
 
-        <div class="panel quick-panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Quick Actions</h2>
-                    <p>Manage your expenses quickly.</p>
-                </div>
-            </div>
+  <div class="card">
+    <div class="card-header">
+      <h3><span>🔤</span> OCR Field Confidence Distribution</h3>
+      <span class="badge badge-low" id="ocr-badge">Traceability</span>
+    </div>
+    <div style="height: 280px; position: relative;">
+      <canvas id="c4"></canvas>
+    </div>
+  </div>
+</div>
 
-            <a href="/upload" class="quick-action">
-                <div class="quick-icon">↑</div>
-                <div><strong>Upload Invoice</strong><span>Scan a new bill</span></div>
-                <b>→</b>
-            </a>
-            <a href="/invoices" class="quick-action">
-                <div class="quick-icon">▣</div>
-                <div><strong>View Invoices</strong><span>Browse processed bills</span></div>
-                <b>→</b>
-            </a>
-            <a href="/chatbot" class="quick-action">
-                <div class="quick-icon">✦</div>
-                <div><strong>Ask AI Assistant</strong><span>Understand your spending</span></div>
-                <b>→</b>
-            </a>
-        </div>
-    </section>
+<!-- Quick Actions & Pipeline Summary -->
+<div class="grid grid-split-3-2">
+  <div class="card">
+    <div class="card-header">
+      <h3><span>⚡</span> High-Priority Case Queue</h3>
+      <a href="/investigations?priority=High" class="btn btn-sm btn-outline">View All &rarr;</a>
+    </div>
+    <div id="quick-cases" class="table-responsive">
+      <p style="padding: 16px; color: var(--text-muted)">Fetching high-priority cases...</p>
+    </div>
+  </div>
 
-    <section class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Recent Invoices</h2>
-                <p>Your latest uploaded documents.</p>
-            </div>
-            <a href="/invoices" class="text-link">View All →</a>
+  <div class="card">
+    <div class="card-header">
+      <h3><span>🛡️</span> Security &amp; MLOps Integrity</h3>
+      <a href="/audit" class="btn btn-sm btn-outline">Audit Trail &rarr;</a>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div style="background:var(--low-bg); border:1px solid var(--low-border); padding:12px 16px; border-radius:var(--radius-md); display:flex; align-items:center; gap:12px;">
+        <span style="font-size:1.5rem">🛡️</span>
+        <div>
+          <strong style="color:var(--low-text); display:block; font-size:0.9rem">Cryptographic Audit Intact</strong>
+          <small style="color:var(--text-secondary)">SHA-256 hash chained records are verified against tampering.</small>
         </div>
-
-        <div class="empty-state">
-            <div class="empty-icon">▣</div>
-            <h3>No invoices yet</h3>
-            <p>Upload your first bill and IDP will extract the expense details automatically.</p>
-            <a href="/upload" class="btn btn-primary">Upload First Invoice</a>
-        </div>
-    </section>
+      </div>
+      <div id="mlops-summary" style="background:var(--primary-subtle); border:1px solid var(--primary-border); padding:12px 16px; border-radius:var(--radius-md);">
+        <strong style="color:var(--primary); display:block; font-size:0.9rem">ML Classifier &amp; Drift Monitoring</strong>
+        <p id="ml-drift-text" style="font-size:0.82rem; color:var(--text-secondary); margin-top:4px">Loading model monitoring stats...</p>
+      </div>
+      <div style="background:var(--bg-subtle); padding:12px 16px; border-radius:var(--radius-md); font-size:0.84rem; color:var(--text-secondary)">
+        <strong>Investigation Principle:</strong>
+        <p style="margin-top:4px">All risk scores and signals are explainable and additive. No automated black-box decisions — human investigators always make the final adjudication.</p>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+fetch('/api/dashboard')
+  .then(r => r.json())
+  .then(d => {
+    // 1. KPI Cards
+    const kpis = [
+      { label: 'Documents Processed', val: d.documents, icon: '📄', class: 'kpi-purple', link: '/documents' },
+      { label: 'Open Investigations', val: d.open_investigations, icon: '⚖️', class: 'kpi-high', link: '/investigations' },
+      { label: 'High / Critical Priority', val: d.high_priority, icon: '🚨', class: 'kpi-critical', link: '/investigations?priority=High' },
+      { label: 'Cross-Doc Conflicts', val: d.conflicts, icon: '⚡', class: 'kpi-critical', link: '/investigations' },
+      { label: 'Possible Duplicates', val: d.duplicates, icon: '📑', class: 'kpi-medium', link: '/copilot' },
+      { label: 'Numeric Anomalies', val: d.anomalies, icon: '📈', class: 'kpi-medium', link: '/copilot' },
+      { label: 'Integrity Warnings', val: d.integrity, icon: '⚠️', class: 'kpi-purple', link: '/documents' },
+      { label: 'Low OCR Confidence', val: d.low_ocr, icon: '🔍', class: 'kpi-high', link: '/documents' },
+      { label: 'Resolved Adjudications', val: d.resolved, icon: '✅', class: 'kpi-low', link: '/investigations?status=Resolved' }
+    ];
+
+    document.getElementById('kpis').innerHTML = kpis.map(k => `
+      <a href="${k.link}" class="kpi ${k.class}" style="text-decoration:none">
+        <div class="kpi-top">
+          <span class="kpi-icon">${k.icon}</span>
+          <span style="font-size:0.75rem; color:var(--text-muted)">&rarr;</span>
+        </div>
+        <b>${k.val}</b>
+        <span>${k.label}</span>
+      </a>
+    `).join('');
+
+    document.getElementById('doc-count-badge').textContent = `${d.documents} Docs`;
+    document.getElementById('prio-badge').textContent = `${d.high_priority} Urgent`;
+
+    // 2. Chart Color Palettes
+    const brandColors = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#64748b'];
+    const prioColors = {
+      'Critical': '#ef4444',
+      'High': '#f97316',
+      'Medium': '#f59e0b',
+      'Low': '#10b981'
+    };
+
+    // Chart 1: Doc Type
+    new Chart(document.getElementById('c1'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(d.by_type || {}).map(s => s.replace('_', ' ').toUpperCase()),
+        datasets: [{
+          label: 'Documents',
+          data: Object.values(d.by_type || {}),
+          backgroundColor: '#6366f1',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+
+    // Chart 2: Priority Doughnut
+    const prioKeys = Object.keys(d.by_priority || {});
+    new Chart(document.getElementById('c2'), {
+      type: 'doughnut',
+      data: {
+        labels: prioKeys,
+        datasets: [{
+          data: Object.values(d.by_priority || {}),
+          backgroundColor: prioKeys.map(k => prioColors[k] || '#94a3b8'),
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'right' } }
+      }
+    });
+
+    // Chart 3: Evidence Kinds
+    new Chart(document.getElementById('c3'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(d.by_evidence_kind || {}).map(s => s.toUpperCase()),
+        datasets: [{
+          label: 'Findings',
+          data: Object.values(d.by_evidence_kind || {}),
+          backgroundColor: '#f59e0b',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+
+    // Chart 4: Confidence Histogram
+    new Chart(document.getElementById('c4'), {
+      type: 'bar',
+      data: {
+        labels: ['0-20%', '20-40%', '40-60%', '60-80%', '80-100%'],
+        datasets: [{
+          label: 'Fields in Range',
+          data: d.confidence_hist || [0, 0, 0, 0, 0],
+          backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#3b82f6', '#10b981'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+
+    // MLOps Monitoring card update
+    if (d.monitoring) {
+      const m = d.monitoring;
+      document.getElementById('ml-drift-text').innerHTML = `
+        Predictions: <b>${m.predictions}</b> · Human Feedback: <b>${m.feedback}</b><br>
+        Mean AI Confidence: <b>${m.mean_confidence ? (m.mean_confidence * 100).toFixed(1) + '%' : 'N/A'}</b> ·
+        Correction Rate: <b>${m.human_correction_rate ? (m.human_correction_rate * 100).toFixed(1) + '%' : '0%'}</b>
+      `;
+    }
+  });
+
+// Load Quick Cases
+fetch('/api/investigations?priority=High')
+  .then(r => r.json())
+  .then(items => {
+    if (!items.length) {
+      fetch('/api/investigations')
+        .then(r => r.json())
+        .then(allItems => renderQuickList(allItems.slice(0, 5)));
+    } else {
+      renderQuickList(items.slice(0, 5));
+    }
+  });
+
+function renderQuickList(items) {
+  const container = document.getElementById('quick-cases');
+  if (!items || !items.length) {
+    container.innerHTML = `
+      <div style="padding:24px; text-align:center; color:var(--text-muted)">
+        <p>No investigations currently queued.</p>
+        <form action="/demo-data" method="post" style="margin-top:10px">
+          <button type="submit" class="btn btn-sm btn-primary">⚡ Load Demo Scenario</button>
+        </form>
+      </div>`;
+    return;
+  }
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Case</th>
+          <th>Doc</th>
+          <th>Priority</th>
+          <th>Score</th>
+          <th>Top Warning</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map(i => `
+          <tr>
+            <td><a href="/investigations/${i.id}" style="font-weight:700">${i.code}</a></td>
+            <td><a href="/documents/${i.doc_id}">${i.document}</a></td>
+            <td><span class="tag ${i.priority}">${i.priority}</span></td>
+            <td><b>${i.score}</b>/100</td>
+            <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${(i.reasons && i.reasons[0]) ? i.reasons[0].text : '—'}</td>
+            <td><span class="status-pill ${i.status.replace(' ', '-')}">${i.status}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+</script>
 {% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Investigation Copilot{% endblock %}
+
+{% block body %}
+<div class="page-header" style="margin-bottom:16px">
+  <div class="page-title-wrap">
+    <h1><span>🤖</span> Grounded Investigation Copilot</h1>
+    <p class="page-subtitle">Conversational reasoning assistant compiled strictly from verified database evidence, facts, and audit logs.</p>
+  </div>
+</div>
+
+<div class="copilot-container">
+  <div class="copilot-header">
+    <div class="copilot-header-info">
+      <h3><span>🔎</span> IDIS Copilot Intelligence</h3>
+      <span style="font-size:0.78rem; color:#94a3b8">Zero Hallucination · Evidence-Backed Reasoning</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px">
+      <span class="copilot-badge">● Grounded in Database</span>
+    </div>
+  </div>
+
+  <div id="chat-body" class="copilot-chat-body">
+    <!-- Initial welcome message -->
+    <div class="chat-message bot">
+      <div class="chat-avatar copilot-avatar">🤖</div>
+      <div class="chat-bubble">
+        <p><strong>Hello, Investigator!</strong> I am your Document Investigation Copilot.</p>
+        <p style="margin-top:6px; font-size:0.86rem; color:var(--text-secondary)">
+          Ask me questions about cross-document conflicts, duplicate detections, low OCR confidence fields, entity relationships, or audit logs. All my answers link directly to stored evidence.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt Suggestion Chips -->
+  <div class="copilot-prompts">
+    <span style="font-size:0.75rem; color:var(--text-muted); align-self:center; font-weight:600">Quick prompts:</span>
+    <button type="button" class="prompt-chip" onclick="askPreset('Why was DOC-4 flagged?')">Why was DOC-4 flagged?</button>
+    <button type="button" class="prompt-chip" onclick="askPreset('Which documents contradict DOC-4?')">Which documents contradict DOC-4?</button>
+    <button type="button" class="prompt-chip" onclick="askPreset('Show possible duplicates')">Show possible duplicates</button>
+    <button type="button" class="prompt-chip" onclick="askPreset('Which documents have low OCR confidence?')">Which documents have low OCR confidence?</button>
+    <button type="button" class="prompt-chip" onclick="askPreset('What happened in the audit trail?')">What happened in the audit trail?</button>
+    <button type="button" class="prompt-chip" onclick="askPreset('Which documents are related to ABC Technologies?')">Documents related to ABC Technologies</button>
+  </div>
+
+  <!-- Input Bar -->
+  <form id="copilot-form" onsubmit="handleAsk(event)" class="copilot-input-bar">
+    <input type="text" id="query-input" placeholder="Type an investigation query (e.g. Why was DOC-4 flagged?)..." autocomplete="off" required>
+    <button type="submit" id="ask-btn" class="btn btn-primary" style="min-width:90px">
+      Ask &rarr;
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function askPreset(text) {
+  document.getElementById('query-input').value = text;
+  document.getElementById('copilot-form').dispatchEvent(new Event('submit'));
+}
+
+async function handleAsk(e) {
+  e.preventDefault();
+  const input = document.getElementById('query-input');
+  const q = input.value.trim();
+  if (!q) return;
+
+  const chatBody = document.getElementById('chat-body');
+  const btn = document.getElementById('ask-btn');
+
+  // Append user bubble
+  chatBody.innerHTML += `
+    <div class="chat-message user">
+      <div class="chat-avatar user-avatar">{{ current_user.username[0]|upper }}</div>
+      <div class="chat-bubble">
+        <p>${escapeHtml(q)}</p>
+      </div>
+    </div>
+  `;
+
+  input.value = '';
+  btn.disabled = true;
+  btn.textContent = 'Thinking...';
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  // Placeholder bot loading bubble
+  const botLoadingId = 'bot-loading-' + Date.now();
+  chatBody.innerHTML += `
+    <div class="chat-message bot" id="${botLoadingId}">
+      <div class="chat-avatar copilot-avatar">🤖</div>
+      <div class="chat-bubble">
+        <p style="color:var(--text-muted)">Consulting evidence graph and findings database...</p>
+      </div>
+    </div>
+  `;
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  try {
+    const res = await fetch('/api/copilot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    const loadingEl = document.getElementById(botLoadingId);
+
+    if (data.error) {
+      loadingEl.querySelector('.chat-bubble').innerHTML = `<p style="color:#ef4444">Error: ${escapeHtml(data.error)}</p>`;
+    } else {
+      let formattedAnswer = (data.answer || '').replace(/\n/g, '<br>');
+      
+      // Convert document codes to links (e.g. DOC-1)
+      formattedAnswer = formattedAnswer.replace(/\bDOC-(\d+)\b/g, '<a href="/documents/$1" style="font-weight:700">DOC-$1</a>');
+      // Convert investigation codes to links (e.g. INV-1)
+      formattedAnswer = formattedAnswer.replace(/\bINV-(\d+)\b/g, '<a href="/investigations/$1" style="font-weight:700">INV-$1</a>');
+
+      let citationsHtml = '';
+      if (data.refs && data.refs.length > 0) {
+        citationsHtml = `
+          <div class="citation-badges">
+            <span style="font-size:0.72rem; color:var(--text-muted); font-weight:600">Grounded in:</span>
+            ${data.refs.map(r => `<span class="citation-badge">📌 ${escapeHtml(r)}</span>`).join('')}
+          </div>
+        `;
+      }
+
+      loadingEl.querySelector('.chat-bubble').innerHTML = `
+        <div style="font-size:0.92rem; line-height:1.6">${formattedAnswer}</div>
+        ${citationsHtml}
+      `;
+    }
+  } catch (err) {
+    const loadingEl = document.getElementById(botLoadingId);
+    if (loadingEl) {
+      loadingEl.querySelector('.chat-bubble').innerHTML = `<p style="color:#ef4444">Connection error: ${err}</p>`;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ask →';
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
+{% endblock %}

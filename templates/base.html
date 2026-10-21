@@ -1,81 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}IDP | Intelligent Expense Management{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    {% block head %}{% endblock %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Intelligent Document Investigation &amp; Decision System{% endblock %} — IDIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
 </head>
-<body class="{% if current_user.is_authenticated %}app-body{% else %}public-body{% endif %}">
+<body>
+  <header class="app-header">
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <div class="brand-icon">🔎</div>
+        <span>IDIS</span>
+        <span class="brand-badge">Investigation &amp; Decision</span>
+      </a>
 
-{% if current_user.is_authenticated %}
-<aside class="sidebar" id="sidebar">
-    <div class="brand">
-        <div class="brand-mark">IDP</div>
-        <div>
-            <strong>IntelliSpend</strong>
-            <span>Smart Expense Manager</span>
+      {% if current_user.is_authenticated %}
+      <nav class="main-nav">
+        <a href="/" class="{% if request.path == '/' %}active{% endif %}">📊 Dashboard</a>
+        <a href="/documents" class="{% if request.path.startswith('/documents') %}active{% endif %}">📄 Documents</a>
+        <a href="/investigations" class="{% if request.path.startswith('/investigations') %}active{% endif %}">⚖️ Queue</a>
+        <a href="/entities" class="{% if request.path.startswith('/entities') %}active{% endif %}">🏢 Entities</a>
+        <a href="/copilot" class="{% if request.path.startswith('/copilot') %}active{% endif %}">🤖 Copilot</a>
+        <a href="/audit" class="{% if request.path.startswith('/audit') %}active{% endif %}">🛡️ Audit</a>
+        <a href="/models" class="{% if request.path.startswith('/models') %}active{% endif %}">🧠 MLOps</a>
+        {% if can('upload') %}
+        <a href="/upload" class="{% if request.path == '/upload' %}active{% endif %}">📤 Upload</a>
+        {% endif %}
+      </nav>
+
+      <div class="nav-actions">
+        <div class="user-pill">
+          <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+          <span>{{ current_user.username }}</span>
+          <span class="role-badge">{{ current_user.role }}</span>
         </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm" title="Log out">Logout</a>
+      </div>
+      {% else %}
+      <div class="nav-actions">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Sign In</a>
+      </div>
+      {% endif %}
     </div>
+  </header>
 
-    <nav class="side-nav">
-        <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
-            <span class="nav-icon">⌂</span><span>Dashboard</span>
-        </a>
-        <a href="/invoices" class="nav-link {% if request.path.startswith('/invoices') %}active{% endif %}">
-            <span class="nav-icon">▣</span><span>Invoices</span>
-        </a>
-        <a href="/expenses" class="nav-link {% if request.path.startswith('/expenses') %}active{% endif %}">
-            <span class="nav-icon">₹</span><span>Expenses</span>
-        </a>
-        <a href="/reports" class="nav-link {% if request.path.startswith('/reports') %}active{% endif %}">
-            <span class="nav-icon">◒</span><span>Reports</span>
-        </a>
-        <a href="/chatbot" class="nav-link {% if request.path.startswith('/chatbot') %}active{% endif %}">
-            <span class="nav-icon">✦</span><span>AI Assistant</span>
-        </a>
-    </nav>
-
-    <div class="sidebar-bottom">
-        <a href="/profile" class="profile-mini">
-            <div class="avatar">{{ current_user.name[:1]|upper }}</div>
-            <div>
-                <strong>{{ current_user.name }}</strong>
-                <span>My Profile</span>
-            </div>
-        </a>
-        <a href="/logout" class="logout-link">
-            <span>↪</span> Logout
-        </a>
+  {% if current_user.is_authenticated %}
+  <div class="sub-header-bar">
+    <div class="sub-header-inner">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span>IDIS Core Active · Explainable Signals · Human In The Loop</span>
+      </div>
+      <div>
+        <span>Tamper-evident audit chain: SHA-256 Chained</span>
+        <span style="margin: 0 8px">·</span>
+        <a href="/audit" style="color: #94a3b8; text-decoration: underline">Verify Chain</a>
+      </div>
     </div>
-</aside>
+  </div>
+  {% endif %}
 
-<button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-<main class="main-content">
-{% else %}
-<main class="public-content">
-{% endif %}
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="flash-stack">
-        {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
+  <main class="app-main">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <div class="flash-container">
+        {% for msg in messages %}
+        <div class="flash {% if 'error' in msg|lower or 'fail' in msg|lower or 'denied' in msg|lower or 'invalid' in msg|lower %}error{% elif 'success' in msg|lower or 'loaded' in msg|lower or 'recorded' in msg|lower or 'retrained' in msg|lower %}success{% else %}info{% endif %}">
+          <span>{{ msg }}</span>
+          <button class="flash-close">&times;</button>
+        </div>
         {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block body %}{% endblock %}
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div>
+        <strong>IDIS</strong> — Evidence-Driven Intelligent Document Investigation &amp; Decision System.
+        <span style="color:#64748b; margin-left: 10px">Produces warning signals &amp; priority scores — never automated fraud conclusions.</span>
+      </div>
+      <div>
+        <span>Logged in as <b>{{ current_user.username if current_user.is_authenticated else 'Guest' }}</b></span>
+      </div>
     </div>
-    {% endif %}
-{% endwith %}
+  </footer>
 
-{% block content %}{% endblock %}
-</main>
-
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
-{% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Investigation Queue{% endblock %}
+
+{% block body %}
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1><span>⚖️</span> Investigation Case Queue</h1>
+    <p class="page-subtitle">Prioritized cases flagged by cross-document conflict, duplicate detection, or anomaly rules for human adjudication.</p>
+  </div>
+  <div class="page-actions">
+    <a href="/copilot" class="btn btn-outline btn-sm">🤖 Copilot Case Insights</a>
+  </div>
+</div>
+
+<!-- Priority Filter Pills -->
+<div class="card" style="padding:14px 20px; margin-bottom:20px">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
+    <div class="filter-tabs" style="margin-bottom:0">
+      <a href="/investigations" class="filter-pill {% if not current_priority and not current_status %}active{% endif %}">All Cases ({{ items|length }})</a>
+      <a href="/investigations?priority=Critical" class="filter-pill {% if current_priority == 'Critical' %}active{% endif %}">🚨 Critical</a>
+      <a href="/investigations?priority=High" class="filter-pill {% if current_priority == 'High' %}active{% endif %}">🔥 High</a>
+      <a href="/investigations?priority=Medium" class="filter-pill {% if current_priority == 'Medium' %}active{% endif %}">⚡ Medium</a>
+      <a href="/investigations?status=New" class="filter-pill {% if current_status == 'New' %}active{% endif %}">🆕 New Cases</a>
+      <a href="/investigations?status=Resolved" class="filter-pill {% if current_status == 'Resolved' %}active{% endif %}">✅ Resolved</a>
+    </div>
+
+    <div>
+      <input type="text" data-table-filter="inv-table" placeholder="Quick filter cases..." style="width:200px; padding:6px 12px; font-size:0.84rem">
+    </div>
+  </div>
+</div>
+
+<!-- Cases Table -->
+<div class="card" style="padding:0; overflow:hidden">
+  <div class="table-responsive">
+    <table id="inv-table">
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Document</th>
+          <th>Priority</th>
+          <th>Risk Score</th>
+          <th>Top Warning Reason</th>
+          <th>Case Status</th>
+          <th>Assignee</th>
+          <th>Created</th>
+          <th style="text-align:right">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in items %}
+        <tr>
+          <td>
+            <a href="/investigations/{{ i.id }}" style="font-weight:700; font-family:var(--font-mono)">{{ i.code }}</a>
+          </td>
+          <td>
+            <div>
+              <a href="/documents/{{ i.doc_id }}" style="font-weight:600; color:var(--text-primary)">DOC-{{ i.doc_id }}</a>
+              {% if i.doc and i.doc.filename %}<small style="color:var(--text-muted); display:block">{{ i.doc.filename }}</small>{% endif %}
+            </div>
+          </td>
+          <td>
+            <span class="tag {{ i.priority }}">{{ i.priority }}</span>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px">
+              <div style="width:60px; height:8px; background:#e2e8f0; border-radius:10px; overflow:hidden">
+                <div style="width:{{ i.score }}%; height:100%; background:{% if i.score >= 80 %}var(--critical){% elif i.score >= 60 %}var(--high){% elif i.score >= 30 %}var(--medium){% else %}var(--low){% endif %}"></div>
+              </div>
+              <span style="font-weight:700; font-size:0.86rem"><b>{{ i.score }}</b>/100</span>
+            </div>
+          </td>
+          <td style="max-width:320px">
+            <span style="font-size:0.85rem; color:var(--text-secondary)">
+              {{ i.reasons[0].text if i.reasons else 'Score above investigation threshold' }}
+            </span>
+          </td>
+          <td>
+            <span class="status-pill {{ (i.status or 'New').replace(' ', '-') }}">{{ i.status }}</span>
+          </td>
+          <td>
+            <span style="font-size:0.84rem; color:var(--text-secondary)">{{ i.assignee or 'Unassigned' }}</span>
+          </td>
+          <td>
+            <small style="color:var(--text-muted)">{{ i.created_at.strftime('%Y-%m-%d %H:%M') if i.created_at else '—' }}</small>
+          </td>
+          <td style="text-align:right">
+            <a href="/investigations/{{ i.id }}" class="btn btn-primary btn-sm">
+              Investigate &rarr;
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="padding:48px 24px; text-align:center; color:var(--text-muted)">
+            <div style="font-size:2rem; margin-bottom:10px">⚖️</div>
+            <h3>No investigation cases match filter</h3>
+            <p style="margin-top:4px">No cases found for the selected criteria.</p>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

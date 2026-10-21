@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}AI Models &amp; MLOps{% endblock %}
+
+{% block body %}
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1><span>🧠</span> AI Models &amp; MLOps Governance</h1>
+    <p class="page-subtitle">Track document classification models, continuous active learning from human feedback, and prediction confidence drift.</p>
+  </div>
+  <div class="page-actions">
+    {% if can('manage') %}
+    <form method="post" style="display:inline">
+      <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Retrain classifier using seed data and human corrections?')">
+        ⚡ Retrain Classifier
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Active Model & Metrics Grid -->
+<div class="grid grid-split-3-2" style="margin-bottom:24px">
+  <!-- Active Model Card -->
+  <div class="card">
+    <div class="card-header">
+      <h3><span>🤖</span> Active Document Classifier</h3>
+      <span class="badge badge-low">Active Production</span>
+    </div>
+
+    {% set active_m = models[0] if models else None %}
+    {% if active_m %}
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; background:#f8fafc; padding:12px 16px; border-radius:var(--radius-md)">
+      <div>
+        <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700">Model Name &amp; Version</span>
+        <div style="font-size:1.05rem; font-weight:700; color:var(--text-primary)">
+          {{ active_m.name }} <span style="font-family:var(--font-mono); font-size:0.9rem; color:var(--primary)">v{{ active_m.version }}</span>
+        </div>
+      </div>
+      <div>
+        <small style="color:var(--text-muted)">Trained on: {{ active_m.created_at.strftime('%Y-%m-%d %H:%M') if active_m.created_at else '—' }}</small>
+      </div>
+    </div>
+
+    <!-- Metrics Grid -->
+    <div class="grid grid-3" style="gap:12px; margin-bottom:12px">
+      <div style="background:var(--primary-subtle); padding:12px; border-radius:var(--radius-md); text-align:center">
+        <span style="font-size:0.75rem; font-weight:600; color:var(--primary); text-transform:uppercase">Accuracy</span>
+        <b style="font-size:1.6rem; display:block; color:var(--primary)">{{ '%.1f'|format((active_m.metrics or {}).get('accuracy', 0)*100) }}%</b>
+      </div>
+      <div style="background:var(--low-bg); padding:12px; border-radius:var(--radius-md); text-align:center">
+        <span style="font-size:0.75rem; font-weight:600; color:var(--low-text); text-transform:uppercase">F1 Score</span>
+        <b style="font-size:1.6rem; display:block; color:var(--low-text)">{{ '%.1f'|format((active_m.metrics or {}).get('f1', 0)*100) }}%</b>
+      </div>
+      <div style="background:var(--bg-subtle); padding:12px; border-radius:var(--radius-md); text-align:center">
+        <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted); text-transform:uppercase">Training Samples</span>
+        <b style="font-size:1.6rem; display:block; color:var(--text-primary)">{{ (active_m.metrics or {}).get('n_train', 0) }}</b>
+      </div>
+    </div>
+
+    <div style="font-size:0.84rem; color:var(--text-secondary); line-height:1.6">
+      Architecture: <b>TF-IDF Vectorizer (1-2 ngrams) + Logistic Regression (C=40)</b>.
+      Model automatically incorporates all human classification feedback recorded in the investigation queue.
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted); padding:20px; text-align:center">No models trained yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Drift Monitoring Card -->
+  <div class="card">
+    <div class="card-header">
+      <h3><span>📈</span> Model Health &amp; Drift</h3>
+      <span class="badge" style="background:#e0f2fe; color:#0369a1">Surveillance</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:14px">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:8px">
+        <span style="font-size:0.86rem; color:var(--text-secondary)">Total Ingest Predictions</span>
+        <b style="font-size:1.1rem">{{ monitoring.predictions or 0 }}</b>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:8px">
+        <span style="font-size:0.86rem; color:var(--text-secondary)">Human Corrections Received</span>
+        <b style="font-size:1.1rem">{{ monitoring.feedback or 0 }}</b>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:8px">
+        <span style="font-size:0.86rem; color:var(--text-secondary)">Human Correction Rate</span>
+        <b style="font-size:1.1rem; color:{% if (monitoring.human_correction_rate or 0) > 0.2 %}#ef4444{% else %}#10b981{% endif %}">
+          {{ '%.1f'|format((monitoring.human_correction_rate or 0)*100) }}%
+        </b>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:8px">
+        <span style="font-size:0.86rem; color:var(--text-secondary)">Mean Prediction Confidence</span>
+        <b style="font-size:1.1rem">
+          {{ '%.1f'|format((monitoring.mean_confidence or 0)*100) if monitoring.mean_confidence else 'N/A' }}%
+        </b>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <span style="font-size:0.86rem; color:var(--text-secondary)">Prediction Confidence Drift</span>
+        <span class="badge" style="background:{% if monitoring.prediction_drift and monitoring.prediction_drift < -0.1 %}#fee2e2; color:#991b1b{% else %}#ecfdf5; color:#065f46{% endif %}">
+          {{ '%.3f'|format(monitoring.prediction_drift) if monitoring.prediction_drift is not none else 'Stable (0.0)' }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Human Feedback Log Table -->
+<div class="card" style="padding:0; overflow:hidden; margin-bottom:24px">
+  <div class="card-header" style="margin:16px 20px 0; padding-bottom:12px">
+    <h3><span>📝</span> Human Corrections &amp; Active Learning Feedback</h3>
+    <span class="badge">{{ feedbacks|length }} Feedback Records</span>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Case / Doc</th>
+          <th>Task</th>
+          <th>AI Prediction</th>
+          <th>Human Ground Truth</th>
+          <th>Reason</th>
+          <th>Reviewer</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fb in feedbacks %}
+        <tr>
+          <td><small style="color:var(--text-muted)">{{ fb.id }}</small></td>
+          <td>
+            <a href="/investigations/{{ fb.investigation_id }}">INV-{{ fb.investigation_id }}</a>
+            <small style="color:var(--text-muted)">(DOC-{{ fb.doc_id }})</small>
+          </td>
+          <td><span class="tag {{ fb.task }}">{{ fb.task }}</span></td>
+          <td><span style="color:#ef4444; font-family:var(--font-mono)">{{ fb.ai_prediction }}</span></td>
+          <td><span style="color:#10b981; font-weight:600; font-family:var(--font-mono)">{{ fb.human_label }}</span></td>
+          <td><small>{{ fb.reason or '—' }}</small></td>
+          <td><b>{{ fb.user }}</b></td>
+          <td><small style="color:var(--text-muted)">{{ fb.created_at.strftime('%Y-%m-%d %H:%M') if fb.created_at else '—' }}</small></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="padding:24px; text-align:center; color:var(--text-muted)">No human feedback logged yet. Submit feedback on the Investigation page to train the model.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

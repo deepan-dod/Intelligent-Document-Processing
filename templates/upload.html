@@ -1,46 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Upload Invoice | IDP{% endblock %}
+{% block title %}Upload Documents{% endblock %}
 
-{% block content %}
-<div class="page-shell narrow-shell">
-    <div class="topbar">
-        <div>
-            <p class="eyebrow">DOCUMENT PROCESSING</p>
-            <h1>Upload Invoice</h1>
-            <p class="page-subtitle">Upload a clear photo or scan of your bill.</p>
-        </div>
-    </div>
-
-    <div class="upload-layout">
-        <section class="panel upload-panel">
-            <form method="POST" action="/upload" enctype="multipart/form-data" id="uploadForm">
-                <label class="drop-zone" id="dropZone">
-                    <input type="file" name="invoice" id="invoiceFile" accept="image/*,.pdf" hidden required>
-                    <div class="upload-icon">↑</div>
-                    <h2>Drop your invoice here</h2>
-                    <p>or click to browse from your device</p>
-                    <span class="file-types">JPG · JPEG · PNG · PDF</span>
-                    <div id="fileName" class="selected-file"></div>
-                </label>
-
-                <div class="upload-tips">
-                    <div><span>✓</span> Make sure the invoice is clearly visible</div>
-                    <div><span>✓</span> Avoid blurry or heavily cropped images</div>
-                    <div><span>✓</span> Keep the total amount readable</div>
-                </div>
-
-                <button type="submit" class="btn btn-primary full-btn">Process Invoice →</button>
-            </form>
-        </section>
-
-        <section class="panel process-panel">
-            <p class="eyebrow">PROCESS</p>
-            <h2>What happens next?</h2>
-            <div class="process-step"><b>01</b><div><strong>Image Enhancement</strong><span>OpenCV improves the uploaded document.</span></div></div>
-            <div class="process-step"><b>02</b><div><strong>OCR Extraction</strong><span>PaddleOCR extracts text from the invoice.</span></div></div>
-            <div class="process-step"><b>03</b><div><strong>Field Parsing</strong><span>Invoice number, date, vendor and amount are identified.</span></div></div>
-            <div class="process-step"><b>04</b><div><strong>Smart Categorization</strong><span>Your expense is assigned to a suitable category.</span></div></div>
-        </section>
-    </div>
+{% block body %}
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1><span>📤</span> Ingest &amp; Investigate Documents</h1>
+    <p class="page-subtitle">Upload purchase orders, invoices, delivery notes, contracts, or certificates for automated OCR and cross-verification.</p>
+  </div>
 </div>
+
+<div class="grid grid-split-3-2">
+  <!-- Upload Box -->
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+      <div class="dropzone" id="drop-area" onclick="document.getElementById('file-input').click()">
+        <div class="dropzone-icon">📁</div>
+        <div>
+          <h3 style="font-size:1.1rem; font-weight:700; color:var(--text-primary)">Click to browse or drag &amp; drop files here</h3>
+          <p style="font-size:0.84rem; color:var(--text-muted); margin-top:4px">
+            Supports PDF, JPG, JPEG, and PNG files up to 20MB per document.
+          </p>
+        </div>
+        <input type="file" id="file-input" name="files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFilesSelected(this.files)" required>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+          Choose Files
+        </button>
+      </div>
+
+      <!-- Selected files preview list -->
+      <div id="file-list-box" style="margin-top:16px; display:none">
+        <h4 style="font-size:0.88rem; font-weight:700; color:var(--text-secondary); margin-bottom:8px">Selected Documents:</h4>
+        <div id="file-list" style="display:flex; flex-direction:column; gap:6px"></div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg" style="width:100%">
+          <span>🚀</span> Upload &amp; Run Investigation Pipeline
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Pipeline Explanation Card -->
+  <div class="card" style="background:#f8fafc">
+    <div class="card-header">
+      <h3><span>⚡</span> Automated Analysis Pipeline</h3>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px; font-size:0.85rem">
+      <div style="display:flex; gap:12px">
+        <span style="font-size:1.2rem">1️⃣</span>
+        <div>
+          <strong>Quality &amp; Deskewing</strong>
+          <p style="color:var(--text-secondary); font-size:0.8rem">Analyzes sharpness, contrast, skew angle, and noise; automatically applies CLAHE contrast.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px">
+        <span style="font-size:1.2rem">2️⃣</span>
+        <div>
+          <strong>OCR with Traceability</strong>
+          <p style="color:var(--text-secondary); font-size:0.8rem">Extracts text lines with bounding boxes and per-line confidence metrics.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px">
+        <span style="font-size:1.2rem">3️⃣</span>
+        <div>
+          <strong>ML Classification &amp; Extraction</strong>
+          <p style="color:var(--text-secondary); font-size:0.8rem">Identifies document type and parses structured business fields and named entities.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px">
+        <span style="font-size:1.2rem">4️⃣</span>
+        <div>
+          <strong>Cross-Document Triangulation</strong>
+          <p style="color:var(--text-secondary); font-size:0.8rem">Matches PO quantities against delivery notes and invoice totals to flag discrepancies.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px">
+        <span style="font-size:1.2rem">5️⃣</span>
+        <div>
+          <strong>Explainable Risk &amp; Case Prioritization</strong>
+          <p style="color:var(--text-secondary); font-size:0.8rem">Aggregates additive risk points and routes priority cases to human investigators.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropArea = document.getElementById('drop-area');
+const fileInput = document.getElementById('file-input');
+const fileListBox = document.getElementById('file-list-box');
+const fileList = document.getElementById('file-list');
+const submitBtn = document.getElementById('submit-btn');
+
+['dragenter', 'dragover'].forEach(eventName => {
+  dropArea.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropArea.classList.add('dragover');
+  }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropArea.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropArea.classList.remove('dragover');
+  }, false);
+});
+
+dropArea.addEventListener('drop', (e) => {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  fileInput.files = files;
+  handleFilesSelected(files);
+}, false);
+
+function handleFilesSelected(files) {
+  if (!files || files.length === 0) {
+    fileListBox.style.display = 'none';
+    return;
+  }
+  fileListBox.style.display = 'block';
+  fileList.innerHTML = '';
+  Array.from(files).forEach(f => {
+    fileList.innerHTML += `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid var(--border-light); padding:8px 12px; border-radius:var(--radius-sm)">
+        <span style="font-weight:600; font-size:0.85rem">📄 ${f.name}</span>
+        <span style="font-size:0.75rem; color:var(--text-muted)">${(f.size / 1024).toFixed(1)} KB</span>
+      </div>
+    `;
+  });
+}
+
+document.getElementById('upload-form').addEventListener('submit', () => {
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span>⏳</span> Processing Documents through Pipeline...';
+});
+</script>
 {% endblock %}

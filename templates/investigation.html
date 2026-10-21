@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}{{ inv.code }} — Case Investigation{% endblock %}
+
+{% block body %}
+<!-- Breadcrumb -->
+<div style="margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted)">
+  <a href="/investigations">&larr; Back to Investigation Queue</a> / <span style="font-family:var(--font-mono)">{{ inv.code }}</span>
+</div>
+
+<!-- Human in the Loop Reminder Banner -->
+<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:var(--radius-md); padding:12px 18px; margin-bottom:20px; display:flex; align-items:center; gap:12px">
+  <span style="font-size:1.4rem">⚠️</span>
+  <div style="font-size:0.86rem; color:#92400e">
+    <strong>Investigation Principle:</strong> Warning signals and risk scores prioritize review attention. They are <em>never</em> proof of fraud. Human investigators make the final decision based on documented evidence.
+  </div>
+</div>
+
+<!-- Case Header -->
+<div class="page-header" style="margin-bottom:18px">
+  <div class="page-title-wrap">
+    <h1>
+      <span>⚖️</span>
+      <span>Case {{ inv.code }}</span>
+      <span class="tag {{ inv.priority }}" style="font-size:0.85rem">{{ inv.priority }} Priority</span>
+      <span class="status-pill {{ (inv.status or 'New').replace(' ', '-') }}">{{ inv.status }}</span>
+    </h1>
+    <p class="page-subtitle">
+      Target Document: <a href="/documents/{{ d.id }}"><b>{{ d.code }}</b> ({{ d.filename }})</a>
+      · Type: <b>{{ (d.doc_type or 'other').replace('_', ' ').title() }}</b>
+      · Assignee: <b>{{ inv.assignee or 'Unassigned' }}</b>
+      · Created: {{ inv.created_at.strftime('%Y-%m-%d %H:%M') if inv.created_at else '—' }}
+    </p>
+  </div>
+  <div class="page-actions">
+    <a href="/documents/{{ d.id }}/file" target="_blank" class="btn btn-secondary btn-sm">📄 View File</a>
+    <a href="/documents/{{ d.id }}" class="btn btn-outline btn-sm">Inspect Full Document &rarr;</a>
+  </div>
+</div>
+
+<!-- Risk Score Gauge Card -->
+<div class="card" style="padding:18px 24px; margin-bottom:24px; background:#ffffff">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:12px">
+    <div>
+      <span style="font-size:0.78rem; text-transform:uppercase; font-weight:700; color:var(--text-muted)">Explainable Risk Score</span>
+      <div style="display:flex; align-items:baseline; gap:8px">
+        <span style="font-size:2.2rem; font-weight:800; color:{% if inv.score >= 80 %}var(--critical){% elif inv.score >= 60 %}var(--high){% elif inv.score >= 30 %}var(--medium){% else %}var(--low){% endif %}">
+          {{ inv.score }}
+        </span>
+        <span style="font-size:1.1rem; color:var(--text-muted); font-weight:600">/ 100</span>
+        <span class="tag {{ inv.priority }}" style="margin-left:6px">{{ inv.priority }} Risk</span>
+      </div>
+    </div>
+
+    <!-- Factor breakdown pills -->
+    <div style="display:flex; flex-wrap:wrap; gap:8px">
+      {% for f in inv.factors or [] %}
+      <div style="background:var(--bg-subtle); border:1px solid var(--border-light); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.8rem">
+        <span style="color:var(--text-muted); text-transform:capitalize">{{ f.factor }}:</span>
+        <strong style="color:var(--critical)">+{{ f.points }} pts</strong>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="risk-bar-wrap" style="height:12px">
+    <div class="risk-bar {{ inv.priority }}" style="width: {{ inv.score }}%"></div>
+  </div>
+</div>
+
+<!-- Main Split Layout -->
+<div class="grid grid-split-3-2">
+  <!-- LEFT COLUMN: Why Flagged, Fields, Evidence, Decisions History -->
+  <div>
+    <!-- Why Flagged Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>🚩</span> Flagged Reasons &amp; Risk Contributors</h3>
+        <span class="badge badge-high">{{ inv.reasons|length }} Signals</span>
+      </div>
+      <ol style="padding-left: 20px; display:flex; flex-direction:column; gap:10px; font-size:0.9rem">
+        {% for r in inv.reasons %}
+        <li style="line-height:1.5">
+          <span>{{ r.text }}</span>
+          <b style="color:var(--critical); font-family:var(--font-mono); margin-left:6px">(+{{ r.points }} pts)</b>
+        </li>
+        {% else %}
+        <li style="color:var(--text-muted)">Score exceeded default investigation threshold.</li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <!-- Extracted Information Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>📋</span> Extracted Document Information</h3>
+        <span style="font-size:0.8rem; color:var(--text-muted)">{{ lines|length }} Traceable OCR lines</span>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Extracted Value</th>
+              <th>Confidence</th>
+              <th style="text-align:right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in fields %}
+            <tr class="{{ 'low' if f.confidence < low }}">
+              <td><b style="font-family:var(--font-mono)">{{ f.name }}</b></td>
+              <td>
+                <span>{{ f.value }}</span>
+                {% if f.corrected %}
+                <span class="badge" style="background:#e0e7ff; color:#3730a3; margin-left:4px">✎ Corrected</span>
+                {% endif %}
+              </td>
+              <td>
+                <span style="font-size:0.82rem; font-weight:600; color:{% if f.confidence < low %}var(--high-text){% else %}var(--text-secondary){% endif %}">
+                  {{ '%.0f'|format(f.confidence*100) }}%
+                </span>
+              </td>
+              <td style="text-align:right">
+                {% if can('correct') %}
+                <button type="button" class="btn btn-outline btn-sm" onclick="populateCorrection({{ f.id }}, '{{ f.name }}', '{{ f.value }}')">
+                  ✎ Edit
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Full Evidence Details -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>🔍</span> Evidence Findings Breakdown</h3>
+        <span class="badge">{{ evidence_list|length }} Findings</span>
+      </div>
+      <div class="evidence-list">
+        {% for e in evidence_list %}
+        <div class="evidence-item {{ e.kind }}">
+          <div class="evidence-header">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span class="tag {{ e.kind }}">{{ e.kind }}</span>
+              <span class="evidence-title">{{ e.title }}</span>
+            </div>
+            {% if e.related_doc_id %}
+            <a href="/documents/{{ e.related_doc_id }}" class="btn btn-sm btn-outline">
+              DOC-{{ e.related_doc_id }} &rarr;
+            </a>
+            {% endif %}
+          </div>
+          {% if e.detail %}
+          <div class="evidence-detail">
+            {% if e.kind == 'conflict' and e.detail is mapping %}
+            Conflict in <b>{{ e.field_name }}</b>: Found <b>{{ e.detail.get('found') }}</b> vs Expected <b>{{ e.detail.get('expected') }}</b> (Documents: {{ (e.detail.get('sources') or [])|join(' / ') }})
+            {% else %}
+            <pre style="margin:0; white-space:pre-wrap">{{ e.detail }}</pre>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <p style="color:var(--text-muted); font-size:0.88rem">No specific evidence records registered.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Decisions History Timeline -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>📜</span> Case Adjudication History</h3>
+        <span class="badge">{{ decisions|length }} Decisions</span>
+      </div>
+      {% if decisions %}
+      <div class="timeline">
+        {% for d in decisions %}
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-meta">
+              <span><b>{{ d.user }}</b> recorded <b>{{ (d.action or '').replace('_', ' ').title() }}</b></span>
+              <span>{{ d.created_at.strftime('%Y-%m-%d %H:%M:%S') if d.created_at else '—' }}</span>
+            </div>
+            <p style="margin-top:4px; color:var(--text-secondary)">{{ d.reason or 'No comment provided.' }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--text-muted); font-size:0.88rem">No decisions recorded on this case yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: Decision Station, Field Correction, AI Feedback, Reports -->
+  <div>
+    {% if can('decide') %}
+    <!-- Human Decision Station -->
+    <div class="card" style="border: 2px solid var(--primary-border); box-shadow: var(--shadow-md)">
+      <div class="card-header">
+        <h3><span>🎯</span> Record Adjudication</h3>
+        <span class="badge" style="background:#e0e7ff; color:#3730a3">Investigator Station</span>
+      </div>
+
+      <form method="post">
+        <div class="form-group">
+          <label>Adjudication Rationale / Notes</label>
+          <input type="text" name="reason" id="decision-reason" placeholder="e.g. Verified with vendor; delivery schedule confirmed." required>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px">
+          <span style="font-size:0.75rem; color:var(--text-muted); width:100%">Quick reasons:</span>
+          <button type="button" class="btn btn-sm btn-outline" onclick="setReason('Verified with vendor invoice and PO.')">Verified with vendor</button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="setReason('Confirmed discrepancy — rejecting billing.')">Confirmed discrepancy</button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="setReason('OCR misread digit; corrected in record.')">OCR typo corrected</button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="setReason('Awaiting revised documentation.')">Awaiting revised doc</button>
+        </div>
+
+        <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">Select Action:</label>
+        <div class="decision-actions">
+          <button type="submit" name="action" value="approve" class="decision-btn approve" title="Approve document and clear investigation">
+            ✅ Approve
+          </button>
+          <button type="submit" name="action" value="reject" class="decision-btn reject" title="Confirm issue and reject">
+            ❌ Confirm Issue
+          </button>
+          <button type="submit" name="action" value="dismiss" class="decision-btn dismiss" title="Dismiss warning as benign">
+            ⚪ Dismiss
+          </button>
+          <button type="submit" name="action" value="request_info" class="decision-btn request_info" title="Request more information from supplier or consignee">
+            🟡 Request Info
+          </button>
+          <button type="submit" name="action" value="escalate" class="decision-btn escalate" title="Escalate to senior supervisor">
+            🟣 Escalate
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Field Correction Station -->
+    {% if can('correct') %}
+    <div class="card" id="correction-box">
+      <div class="card-header">
+        <h3><span>✎</span> Field Value Correction</h3>
+        <span class="badge badge-low">Auto Re-Scores</span>
+      </div>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:14px">
+        Correcting an OCR typo immediately updates data, clears resolved conflicts, and automatically re-scores risk.
+      </p>
+
+      <form method="post">
+        <input type="hidden" name="action" value="correct">
+        <div class="form-group">
+          <label>Target Field</label>
+          <select name="field_id" id="corr-field-id" required onchange="onFieldSelected(this)">
+            <option value="">-- Choose field to correct --</option>
+            {% for f in fields %}
+            <option value="{{ f.id }}" data-name="{{ f.name }}" data-val="{{ f.value }}">{{ f.name }} (Current: {{ f.value }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Corrected Value</label>
+          <input type="text" name="value" id="corr-field-val" placeholder="New correct value" required>
+        </div>
+
+        <div class="form-group">
+          <label>Reason for Correction</label>
+          <input type="text" name="reason" id="corr-reason" placeholder="e.g. Scanned font misread 0 as 8" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%">
+          Apply Correction &amp; Re-Analyze
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- AI Active Learning Feedback Station -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>🧠</span> Provide Feedback to AI</h3>
+        <span class="badge" style="background:#ede9fe; color:#5b21b6">Continuous Learning</span>
+      </div>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:14px">
+        Teach IDIS models by submitting corrections on classification, duplicate flags, or anomaly signals.
+      </p>
+
+      <form method="post">
+        <div class="form-group">
+          <label>Task</label>
+          <select name="task" required>
+            <option value="conflict">Cross-Document Conflict</option>
+            <option value="duplicate">Duplicate Detection</option>
+            <option value="classification">Document Classification</option>
+            <option value="anomaly">Numeric Anomaly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>AI Prediction</label>
+          <input type="text" name="ai_prediction" placeholder="e.g. Possible Duplicate" required>
+        </div>
+        <div class="form-group">
+          <label>Human Ground-Truth Label</label>
+          <input type="text" name="human_label" placeholder="e.g. Genuine Distinct Invoice" required>
+        </div>
+        <div class="form-group">
+          <label>Explanation</label>
+          <input type="text" name="reason" placeholder="Why this correction was made">
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm" style="width:100%">
+          Submit AI Training Feedback
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Reports Export Center -->
+    <div class="card">
+      <div class="card-header">
+        <h3><span>📥</span> Official Reports</h3>
+        <span class="badge">Compliance Ready</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:8px">
+          <div>
+            <strong style="display:block; font-size:0.86rem">Investigation Summary</strong>
+            <small style="color:var(--text-muted)">Case findings, factors, and adjudications</small>
+          </div>
+          <div style="display:flex; gap:4px">
+            <a href="/api/reports/investigation/{{ inv.id }}.pdf" class="btn btn-sm btn-outline">PDF</a>
+            <a href="/api/reports/investigation/{{ inv.id }}.csv" class="btn btn-sm btn-outline">CSV</a>
+            <a href="/api/reports/investigation/{{ inv.id }}.xlsx" class="btn btn-sm btn-outline">XLSX</a>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-light); padding-bottom:8px">
+          <div>
+            <strong style="display:block; font-size:0.86rem">Evidence Findings</strong>
+            <small style="color:var(--text-muted)">Signal list &amp; cross-doc diffs</small>
+          </div>
+          <div style="display:flex; gap:4px">
+            <a href="/api/reports/evidence/{{ inv.id }}.pdf" class="btn btn-sm btn-outline">PDF</a>
+            <a href="/api/reports/evidence/{{ inv.id }}.csv" class="btn btn-sm btn-outline">CSV</a>
+            <a href="/api/reports/evidence/{{ inv.id }}.xlsx" class="btn btn-sm btn-outline">XLSX</a>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <strong style="display:block; font-size:0.86rem">Audit Trail Log</strong>
+            <small style="color:var(--text-muted)">Hash-chained tamper-evident records</small>
+          </div>
+          <div style="display:flex; gap:4px">
+            <a href="/api/reports/audit/{{ inv.id }}.pdf" class="btn btn-sm btn-outline">PDF</a>
+            <a href="/api/reports/audit/{{ inv.id }}.csv" class="btn btn-sm btn-outline">CSV</a>
+            <a href="/api/reports/audit/{{ inv.id }}.xlsx" class="btn btn-sm btn-outline">XLSX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setReason(text) {
+  document.getElementById('decision-reason').value = text;
+}
+
+function populateCorrection(id, name, val) {
+  const sel = document.getElementById('corr-field-id');
+  if (sel) {
+    sel.value = id;
+    document.getElementById('corr-field-val').value = val;
+    document.getElementById('corr-reason').value = 'OCR/scanning typo';
+    document.getElementById('correction-box').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function onFieldSelected(selectEl) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+  if (opt && opt.getAttribute('data-val')) {
+    document.getElementById('corr-field-val').value = opt.getAttribute('data-val');
+  }
+}
+</script>
+{% endblock %}

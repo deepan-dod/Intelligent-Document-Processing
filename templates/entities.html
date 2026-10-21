@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Resolved Entities{% endblock %}
+
+{% block body %}
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1><span>🏢</span> Resolved Entities &amp; Aliases</h1>
+    <p class="page-subtitle">Disambiguated organizations and persons identified across documents using fuzzy similarity clustering and alias linkage.</p>
+  </div>
+  <div class="page-actions">
+    <input type="text" data-table-filter="entities-table" placeholder="Filter entities..." style="width:220px; padding:6px 12px">
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden">
+  <div class="table-responsive">
+    <table id="entities-table">
+      <thead>
+        <tr>
+          <th>Entity Code</th>
+          <th>Canonical Entity Name</th>
+          <th>Type</th>
+          <th>Resolved Aliases &amp; Variations</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in items %}
+        <tr>
+          <td>
+            <b style="font-family:var(--font-mono)">{{ e.code }}</b>
+          </td>
+          <td>
+            <strong style="font-size:0.95rem; color:var(--text-primary)">{{ e.canonical_name }}</strong>
+          </td>
+          <td>
+            <span class="tag entity" style="text-transform:capitalize">
+              {{ e.etype }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; flex-wrap:wrap; gap:6px">
+              {% for a in e.aliases %}
+              <span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0">
+                {{ a.alias }}
+              </span>
+              {% else %}
+              <span style="color:var(--text-muted); font-size:0.84rem">No alternative aliases recorded</span>
+              {% endfor %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="padding:32px; text-align:center; color:var(--text-muted)">No entities extracted or resolved yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

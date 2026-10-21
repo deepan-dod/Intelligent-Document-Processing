@@ -1,37 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Login | IDP{% endblock %}
+{% block title %}Sign In{% endblock %}
 
-{% block content %}
-<section class="auth-page">
-    <div class="auth-glow"></div>
-    <div class="auth-card">
-        <div class="auth-logo">IDP</div>
-        <h1>Welcome Back</h1>
-        <p class="auth-subtitle">Login to your intelligent expense management system.</p>
-
-        {% if error %}
-        <div class="error-message">{{ error }}</div>
-        {% endif %}
-
-        <form method="POST" action="/login" class="auth-form">
-            <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" name="email" placeholder="Enter your email"
-                       value="{{ email or '' }}" required>
-            </div>
-
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Enter your password" required>
-            </div>
-
-            <button type="submit" class="auth-button">Login</button>
-        </form>
-
-        <p class="auth-footer">
-            Don't have an account?
-            <a href="/register">Create Account</a>
-        </p>
+{% block body %}
+<div style="min-height: calc(100vh - 280px); display:flex; align-items:center; justify-content:center; padding: 20px 0;">
+  <div class="card" style="width:100%; max-width:420px; box-shadow:var(--shadow-xl); border-radius:var(--radius-xl); padding:32px">
+    <div style="text-align:center; margin-bottom:24px">
+      <div style="width:52px; height:52px; border-radius:var(--radius-md); background:linear-gradient(135deg, #6366f1 0%, #a855f7 100%); margin:0 auto 12px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#fff; box-shadow:0 4px 12px rgba(99,102,241,0.4)">
+        🔎
+      </div>
+      <h2 style="font-size:1.45rem; font-weight:800; color:var(--text-primary); letter-spacing:-0.02em">Sign In to IDIS</h2>
+      <p style="font-size:0.86rem; color:var(--text-muted); margin-top:4px">
+        Intelligent Document Investigation System
+      </p>
     </div>
-</section>
+
+    <!-- Quick Credentials Helper -->
+    <div style="background:var(--primary-subtle); border:1px solid var(--primary-border); border-radius:var(--radius-md); padding:12px; margin-bottom:20px; font-size:0.8rem">
+      <strong style="color:var(--primary); display:block; margin-bottom:6px">Quick Fill Demo Roles:</strong>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px">
+        <button type="button" class="btn btn-outline btn-sm" onclick="quickFill('admin', 'admin123')">Admin</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="quickFill('inv', 'password123')">Investigator</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="quickFill('rev', 'password123')">Reviewer</button>
+        <button type="button" class="btn btn-outline btn-sm" onclick="quickFill('aud', 'password123')">Auditor</button>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('auth.login', next=next) if next else url_for('auth.login') }}">
+      {% if next %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" id="username" placeholder="Enter username" required autofocus>
+      </div>
+
+      <div class="form-group" style="margin-bottom:20px">
+        <label>Password</label>
+        <input type="password" name="password" id="password" placeholder="Enter password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:11px; font-size:0.95rem">
+        Sign In &rarr;
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function quickFill(user, pw) {
+  document.getElementById('username').value = user;
+  document.getElementById('password').value = pw;
+}
+</script>
 {% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Documents{% endblock %}
+
+{% block body %}
+<div class="page-header">
+  <div class="page-title-wrap">
+    <h1><span>📄</span> Document Repository</h1>
+    <p class="page-subtitle">All ingested files with automated OCR, layout classification, quality diagnostics &amp; field extraction.</p>
+  </div>
+  <div class="page-actions">
+    {% if can('upload') %}
+    <form action="/demo-data" method="post" style="display:inline">
+      <button type="submit" class="btn btn-secondary btn-sm">⚡ Load Demo Scenario</button>
+    </form>
+    <a href="/upload" class="btn btn-primary btn-sm">📤 Upload New Document</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="card" style="padding: 16px 20px; margin-bottom: 20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <!-- Type Filter Tabs -->
+    <div class="filter-tabs" style="margin-bottom:0">
+      <a href="/documents" class="filter-pill {% if not current_type and not q %}active{% endif %}">All Documents</a>
+      {% for t in types %}
+      <a href="/documents?type={{ t }}" class="filter-pill {% if current_type == t %}active{% endif %}">
+        {{ t.replace('_', ' ').title() }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Search Form -->
+    <form method="get" class="search-bar" style="margin:0">
+      {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+      <span>🔍</span>
+      <input type="search" name="q" value="{{ q }}" placeholder="Search content, filename, or intent (e.g. CERT-19, duplicates)..." size="40">
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      {% if q %}
+      <a href="/documents{% if current_type %}?type={{ current_type }}{% endif %}" class="btn btn-outline btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Documents Table -->
+<div class="card" style="padding:0; overflow:hidden">
+  <div class="table-responsive">
+    <table id="docs-table">
+      <thead>
+        <tr>
+          <th>Doc Code</th>
+          <th>File Name</th>
+          <th>Type Classification</th>
+          <th>Quality Score</th>
+          <th>OCR Engine</th>
+          <th>Status</th>
+          <th>Uploaded</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td>
+            <a href="/documents/{{ d.id }}" style="font-weight:700; font-family:var(--font-mono)">{{ d.code }}</a>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font-size:1.1rem">{% if d.filename.endswith('.pdf') %}📑{% else %}🖼️{% endif %}</span>
+              <div>
+                <a href="/documents/{{ d.id }}" style="font-weight:600; color:var(--text-primary)">{{ d.filename }}</a>
+                {% if d.page_count %}<small style="color:var(--text-muted); display:block">{{ d.page_count }} page{{ 's' if d.page_count > 1 else '' }} · {{ (d.size / 1024)|round(1) }} KB</small>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px">
+              <span class="tag {{ d.doc_type or 'other' }}" style="background:#e0e7ff; color:#3730a3">
+                {{ (d.doc_type or 'other').replace('_', ' ').title() }}
+              </span>
+              <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted)">
+                {{ '%.0f'|format((d.type_confidence or 0)*100) }}%
+              </span>
+              {% if d.needs_type_review %}
+              <span title="Low classification confidence — human type review recommended" style="cursor:help; font-size:0.95rem">⚠️</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            {% set q_val = (d.quality or {}).get('overall', 0) %}
+            <div style="display:flex; align-items:center; gap:8px">
+              <div style="width:50px; height:6px; background:#e2e8f0; border-radius:10px; overflow:hidden">
+                <div style="width:{{ '%.0f'|format(q_val * 100) }}%; height:100%; background:{% if q_val >= 0.7 %}var(--low){% elif q_val >= 0.45 %}var(--medium){% else %}var(--critical){% endif %}"></div>
+              </div>
+              <span style="font-size:0.8rem; font-weight:600">{{ '%.0f'|format(q_val * 100) }}%</span>
+            </div>
+          </td>
+          <td>
+            <span style="font-size:0.8rem; color:var(--text-secondary)">{{ d.ocr_engine or 'Text layer' }}</span>
+          </td>
+          <td>
+            <span class="status-pill {{ (d.status or 'Uploaded').replace(' ', '-') }}">{{ d.status }}</span>
+          </td>
+          <td>
+            <small style="color:var(--text-muted)">{{ d.uploaded_at.strftime('%Y-%m-%d %H:%M') if d.uploaded_at else '—' }}</small>
+          </td>
+          <td style="text-align:right">
+            <div style="display:inline-flex; gap:6px">
+              <a href="/documents/{{ d.id }}" class="btn btn-outline btn-sm">Inspect</a>
+              <a href="/documents/{{ d.id }}/file?download=1" class="btn btn-secondary btn-sm" title="Download original file">⬇️</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="padding: 48px 24px; text-align:center; color:var(--text-muted)">
+            <div style="font-size:2rem; margin-bottom:10px">📂</div>
+            <h3>No documents found</h3>
+            <p style="margin-top:6px">{% if q %}No documents match your query "{{ q }}".{% else %}No documents have been uploaded yet.{% endif %}</p>
+            {% if can('upload') %}
+            <div style="margin-top:16px; display:flex; justify-content:center; gap:10px">
+              <form action="/demo-data" method="post">
+                <button type="submit" class="btn btn-primary btn-sm">⚡ Load Demo Scenario</button>
+              </form>
+              <a href="/upload" class="btn btn-secondary btn-sm">Upload File</a>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
